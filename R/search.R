@@ -6,24 +6,60 @@ filesToIgnore <- function() {
 `%notin%` <- Negate("%in%")
 
 #' Look up contents of vault
-#' @param repo a string set up as <org>/<repo>
+#' @param owner name of organization
+#' @param repo name of repository
 #' @export
-vaultContents <- function(repo) {
-  vv <- vault(repo)
+vaultContents <- function(owner, repo) {
 
   gh_contents <- gh::gh("GET /repos/{owner}/{repo}/contents",
-                     owner = vv$owner,
-                     repo = vv$repo)
+                        owner = owner,
+                        repo = repo) %>%
+    purrr::discard(~.x$name %in% filesToIgnore())
 
-  nm <- purrr::map_chr(gh_contents, ~.x$name)
-  url <- purrr::map_chr(gh_contents, ~.x$url)
+  tb <- purrr::map_chr(gh_contents, ~.x$name) %>%
+    purrr::map_dfr(~getReadmeMeta(owner = owner,
+                                  repo = repo,
+                                  dir = .x))
+  return(tb)
 
-  contents <- tibble::tibble(
-    name = nm,
-    url = url
-  ) %>%
-    dplyr::filter(name %notin% filesToIgnore())
+}
 
-  return(contents)
 
+getReadmeMeta <- function(owner, repo, dir) {
+
+  dd <- gh::gh("GET /repos/{owner}/{repo}/readme/{dir}",
+               owner = owner,
+               repo = repo,
+               dir = dir)
+
+  tmp <- tempfile()
+  download.file(url = dd$download_url,
+                destfile = tmp,
+                quiet = TRUE)
+  txt <- readr::read_lines(tmp)
+
+  readmeTibble(txt)
+
+}
+
+
+readmeTibble <- function(txt) {
+  # find where meta starts and stops
+  start <- which(txt == "## Meta") + 2
+  stop <- which(txt == "## Dependencies") - 2
+  #extract lines with meta info
+  dd <- txt[start:stop]
+
+  #extract values of meta
+  value <- stringr::str_remove(dd, '^.*: ')
+  # get variable names
+  names(value) <- sub(":.*", "", dd) %>%
+    snakecase::to_snake_case()
+  #turn into tibble
+  tb <- value %>% tibble::as_tibble_row()
+  return(tb)
+}
+
+previewVault <- function(repo, directory) {
+  vv <- vault(repo)
 }

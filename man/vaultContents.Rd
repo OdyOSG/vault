@@ -4,10 +4,12 @@
 \alias{vaultContents}
 \title{Look up contents of vault}
 \usage{
-vaultContents(repo)
+vaultContents(owner, repo)
 }
 \arguments{
-\item{repo}{a string set up as \if{html}{\out{<org>}}/\if{html}{\out{<repo>}}}
+\item{owner}{name of organization}
+
+\item{repo}{name of repository}
 }
 \description{
 Look up contents of vault
