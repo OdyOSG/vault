@@ -92,7 +92,7 @@ vaultRepos <- function(vault) {
 gh_getOrgRepos <- function(vault) {
 
   tst <- gh::gh("GET /orgs/{org}/repos",
-         org = vault$org,
-         per_page = 50) %>%
+                org = vault$org,
+                per_page = 50) %>%
     purrr::keep(~.x$name %in% vaultRepos(vault))
 }
