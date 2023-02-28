@@ -1,23 +1,3 @@
-vault <- function(repo) {
-  sp <- stringr::str_split_1(string = repo, pattern = "/")
-  vault <- structure(
-    list(
-      owner = sp[1],
-      repo = sp[2]
-    ),
-    class = "vaultMeta"
-  )
-  return(vault)
-}
-
-vault2 <- function(...) {
-  dots <- rlang::list2(...)
-  structure(
-    dots,
-    class = "vaultManifest"
-  )
-}
-
 #' Check if have access to vault
 #' @param repo a string set up as <org>/<repo>
 #' @export
