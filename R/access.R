@@ -10,6 +10,14 @@ vault <- function(repo) {
   return(vault)
 }
 
+vault2 <- function(...) {
+  dots <- rlang::list2(...)
+  structure(
+    dots,
+    class = "vaultManifest"
+  )
+}
+
 #' Check if have access to vault
 #' @param repo a string set up as <org>/<repo>
 #' @export
