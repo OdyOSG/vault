@@ -1,65 +1,62 @@
-filesToIgnore <- function() {
-  #TODO update to match all ignorable files
-  c(".gitattributes", ".gitignore", "README.md")
+# Dependent functions ----------------
+
+listRepos <- function(vault) {
+  res <- gh_getContents(vault) %>%
+    purrr::map_chr(~.x$name)
+
+  return(res)
 }
 
-`%notin%` <- Negate("%in%")
+findMetaItem <- function(txt, item) {
+  metaItem <- paste0("-  ", item)
+  ii <- txt[grepl(metaItem, txt)]
+  value <- stringr::str_remove(ii, '^.*: ')
+  return(value)
+}
 
-#' Look up contents of vault
-#' @param owner name of organization
-#' @param repo name of repository
+listMeta <- function(vault, dir) {
+  dd <- gh_getDirReadMe(vault, dir)$download_url
+  txt <- downloadVault(dd)
+  res <- purrr::map(metaItems(), ~findMetaItem(txt, item =.x)) %>%
+    purrr::set_names(nm = metaItems()) %>%
+    tibble::as_tibble() %>%
+    dplyr::mutate(
+      org = vault$org,
+      repo = vault$repo,
+      .before = 1
+    )
+
+  return(res)
+
+}
+
+# Contents ------------------
+
+#' List contents of vault
+#' @param vault a vault object
 #' @export
-vaultContents <- function(owner, repo) {
-
-  gh_contents <- gh::gh("GET /repos/{owner}/{repo}/contents",
-                        owner = owner,
-                        repo = repo) %>%
-    purrr::discard(~.x$name %in% filesToIgnore())
-
-  tb <- purrr::map_chr(gh_contents, ~.x$name) %>%
-    purrr::map_dfr(~getReadmeMeta(owner = owner,
-                                  repo = repo,
-                                  dir = .x))
-  return(tb)
-
+listContents <- function(vault) {
+  repos <- listRepos(vault)
+  purrr::map_dfr(repos, ~listMeta(vault, dir = .x))
 }
 
-
-getReadmeMeta <- function(owner, repo, dir) {
-
-  dd <- gh::gh("GET /repos/{owner}/{repo}/readme/{dir}",
-               owner = owner,
-               repo = repo,
-               dir = dir)
-
-  tmp <- tempfile()
-  download.file(url = dd$download_url,
-                destfile = tmp,
-                quiet = TRUE)
-  txt <- readr::read_lines(tmp)
-
-  readmeTibble(txt)
-
-}
-
-
-readmeTibble <- function(txt) {
-  # find where meta starts and stops
-  start <- which(txt == "## Meta") + 2
-  stop <- which(txt == "## Dependencies") - 2
-  #extract lines with meta info
-  dd <- txt[start:stop]
-
-  #extract values of meta
-  value <- stringr::str_remove(dd, '^.*: ')
-  # get variable names
-  names(value) <- sub(":.*", "", dd) %>%
-    snakecase::to_snake_case()
-  #turn into tibble
-  tb <- value %>% tibble::as_tibble_row()
-  return(tb)
-}
-
-previewVault <- function(repo, directory) {
-  vv <- vault(repo)
+# Preview --------------------
+#' Preview file in Rstudio viewer
+#' @param vault a vault object
+#' @param item the item in the vault to preview
+#' @export
+preview <- function(vault, item) {
+  dd <- gh_getDirReadMe(vault, item)$download_url
+  txt <- downloadVault(dd)
+  #replace first header with % to fit pandoc
+  txt[1] <- gsub("#", "%", txt[1])
+  #create a temp dir for readme file
+  tempDir <- tempfile()
+  dir.create(tempDir)
+  tmpRmd <- file.path(tempDir, "README.Rmd")
+  #write file to tmp
+  readr::write_lines(txt, file = tmpRmd)
+  tmpHtml <- rmarkdown::render(tmpRmd, params = "ask", quiet = TRUE)
+  rstudioapi::viewer(tmpHtml)
+  invisible(tmpHtml)
 }
