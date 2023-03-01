@@ -59,6 +59,19 @@ gh_getFiles <- function(vault, item) {
   }
 }
 
+gh_downloadFile <- function(vault, path) {
+  check <- checkAccess(vault)
+  if (check) {
+    gh::gh("GET /repos/{owner}/{repo}/contents/{path}",
+           owner = vault$org,
+           repo = vault$repo,
+           path = path)$download_url %>%
+      downloadVault()
+  } else{
+    stop("User does not have access to this vault")
+  }
+}
+
 # Checkers ---------------------------
 
 howManyFiles <- function(vault, item) {
