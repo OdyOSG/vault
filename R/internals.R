@@ -69,7 +69,7 @@ howManyFiles <- function(vault, item) {
 # Download ---------------
 downloadVault <- function(downloadUrl) {
   tmp <- tempfile()
-  download.file(url = downloadUrl,
+  utils::download.file(url = downloadUrl,
                 destfile = tmp,
                 quiet = TRUE)
   txt <- readr::read_lines(tmp)

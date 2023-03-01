@@ -6,7 +6,7 @@
 checkout <- function(vault, item, openFile = TRUE) {
   numFiles <- howManyFiles(vault, item)
   if (numFiles == 1) {
-    dd <- gh_getFiles(vault = vv, item = item)
+    dd <- gh_getFiles(vault = vault, item = item)
     fileName <- dd[[1]]$name
     theFile <- downloadVault(dd[[1]]$download_url)
     filePath <- fs::path(vault$savePath, fileName)
