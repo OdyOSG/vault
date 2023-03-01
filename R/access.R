@@ -11,7 +11,8 @@ vault <- function(repo_string,
       org = st[1],
       repo = st[2],
       savePath = savePath
-    )
+    ),
+    class = "vault"
   )
 }
 
