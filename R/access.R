@@ -1,21 +1,33 @@
-#' Check if have access to vault
-#' @param repo a string set up as <org>/<repo>
+#' Create a vault object to use
+#' @param repo_string a string specified as <org>/<repo>
+#' @param savePath a path to use for saving items from vault, defaults to project directory
 #' @export
-checkVaultAccess <- function(repo) {
-  vault <- vault(repo)
-  checkAccess <- purrr::safely(gh::gh)
+vault <- function(repo_string,
+                  savePath = here::here()) {
 
-
-  tst <- checkAccess("GET /repos/{owner}/{repo}",
-                     owner = vault$owner,
-                     repo = vault$repo)
-
-  if (is.null(tst$error)) {
-    access <- glue::glue("Vault access to ", crayon::blue(repo), " granted!")
-  } else{
-    access <- glue::glue("Vault access to ", crayon::blue(repo),
-                         "denied.\n Check if you have set PAT or if you have permissions to access this repository.")
-  }
-  access
+  st <- stringr::str_split_1(repo_string, "/")
+  structure(
+    list(
+      org = st[1],
+      repo = st[2],
+      savePath = savePath
+    )
+  )
 }
+
+#' Check if have access to vault
+#' @param vault a vault object to check access
+#' @export
+checkAccess <- function(vault) {
+  safe_gh <- purrr::safely(gh::gh)
+  check <- safe_gh("GET /repos/{owner}/{repo}",
+                   owner = vault$org,
+                   repo = vault$repo)
+  if (is.null(check$error)) {
+    TRUE
+  } else {
+    FALSE
+  }
+}
+
 
