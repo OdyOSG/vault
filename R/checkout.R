@@ -6,21 +6,10 @@
 checkout <- function(vault, item, openFile = TRUE) {
   numFiles <- howManyFiles(vault, item)
   if (numFiles == 1) {
-    dd <- gh_getFiles(vault = vault, item = item)
-    fileName <- dd[[1]]$name
-    theFile <- downloadVault(dd[[1]]$download_url)
-    filePath <- fs::path(vault$savePath, fileName)
-    readr::write_lines(theFile, file = filePath)
-    cli::cat_bullet("Downloaded file ", crayon::green(fileName), " to ", crayon::cyan(vault$savePath),
-                    bullet = "tick", bullet_col = "green")
+    checkoutSingleFile(vault = vault, item = item, openFile = openFile)
   } else {
-    #TODO add situation where there are mulitple files
+    checkoutTwoFiles(vault = vault, item = item, openFile = openFile)
   }
-
-  if (openFile) {
-    rstudioapi::navigateToFile(filePath)
-  }
-
   invisible(item)
 }
 
@@ -30,6 +19,56 @@ checkout <- function(vault, item, openFile = TRUE) {
 #' @export
 mapCheckout <- function(vault, items) {
   purrr::walk(items, ~checkout(vault = vault, item = .x, openFile = FALSE))
+}
+
+
+checkoutSingleFile <- function(vault, item, openFile) {
+  dd <- gh_getFiles(vault = vault, item = item)
+  fileName <- dd[[1]]$name
+  theFile <- downloadVault(dd[[1]]$download_url)
+  filePath <- fs::path(vault$savePath, fileName)
+  writeFile(theFile, filePath)
+  if (openFile) {
+    rstudioapi::navigateToFile(filePath)
+  }
+
+  invisible(filePath)
+}
+
+checkoutTwoFiles <- function(vault, item, openFile) {
+  # if path does not in an R folder make a folder with item as name
+  if (!checkIfRFolderEndOfPath(vault)) {
+    savePath <- fs::path(vault$savePath, item)
+    fs::dir_create(savePath)
+  } else{
+    savePath <- vault$savePath
+  }
+
+  dd <- gh_getFiles(vault = vault, item = item)
+  fileName <- purrr::map_chr(dd, ~.x$name)
+  ff <- purrr::map_chr(dd, ~.x$path)  %>%
+    purrr::map(~gh_downloadFile(vault = vault, path = .x))
+  filePath <- fs::path(savePath, fileName)
+  purrr::walk2(ff, filePath, ~writeFile(.x, .y))
+  if (openFile) {
+    rstudioapi::navigateToFile(filePath[2])
+  }
+
+  invisible(filePath)
+
+}
+
+checkIfRFolderEndOfPath <- function(vault) {
+  check <- vault$savePath
+  endsWith(check, "/R")
+}
+
+writeFile <- function(theFile, filePath) {
+  readr::write_lines(theFile, file = filePath)
+  fileName <- basename(filePath)
+  savePath <- dirname(filePath)
+  cli::cat_bullet("Downloaded file ", crayon::green(fileName), " to ", savePath,
+                  bullet = "tick", bullet_col = "green")
 }
 
 #

@@ -8,7 +8,7 @@ listRepos <- function(vault) {
 }
 
 findMetaItem <- function(txt, item) {
-  metaItem <- paste0("-  ", item)
+  metaItem <- paste0(item, ":")
   ii <- txt[grepl(metaItem, txt)]
   value <- stringr::str_remove(ii, '^.*: ')
   return(value)
