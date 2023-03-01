@@ -1,98 +1,77 @@
-
-vault <- function(org, repo = NULL, dir = NULL, file = NULL) {
-  structure(
-    list(
-      org = org,
-      repo = repo,
-      dir = dir,
-      file = file
-    ),
-    class = "vaultMeta"
-  )
-}
-
-addRepo <- function(vault, repo){
-  vault$repo <- repo
-  return(vault)
-}
-
-addDir <- function(vault, dir) {
-  vault$dir <- dir
-  return(vault)
-}
-
-addFile <- function(vault, file) {
-  vault$file <- file
-  return(vault)
-}
-
-gh_getRepo <- function(vault) {
-  checkmate::assertCharacter(vault$org)
-  checkmate::assertCharacter(vault$repo)
-  gh::gh("GET /repos/{owner}/{repo}",
-         owner = vault$org,
-         repo = vault$repo)
-}
+# Presets ------------------------
 
 filesToIgnore <- function() {
   #TODO update to match all ignorable files
   c(".gitattributes", ".gitignore", "README.md")
 }
 
+
+
+metaItems <- function() {
+  #TODO update to match all READMES
+  #TODO consider adding a tag
+  c("name", "type", "version", "maintainer", "description")
+}
+
+# GH Functions -------------------------
+
 gh_getContents <- function(vault) {
   checkmate::assertCharacter(vault$org)
   checkmate::assertCharacter(vault$repo)
-  gh::gh("GET /repos/{owner}/{repo}/contents",
-         owner = vault$org,
-         repo = vault$repo) %>%
-    purrr::discard(~.x$name %in% filesToIgnore())
+  check <- checkAccess(vault)
+  if (check) {
+    gh::gh("GET /repos/{owner}/{repo}/contents",
+           owner = vault$org,
+           repo = vault$repo) %>%
+      purrr::discard(~.x$name %in% filesToIgnore())
+  } else{
+    stop("User does not have access to this vault")
+  }
+
+
 }
 
-gh_getDirReadMe <- function(vault) {
+gh_getDirReadMe <- function(vault, dir) {
   checkmate::assertCharacter(vault$org)
   checkmate::assertCharacter(vault$repo)
-  checkmate::assertCharacter(vault$dir)
-  gh::gh("GET /repos/{owner}/{repo}/readme/{dir}",
-         owner = vault$org,
-         repo = vault$repo,
-         dir = vault$dir)
+  checkmate::assertCharacter(dir)
+  check <- checkAccess(vault)
+  if (check) {
+    gh::gh("GET /repos/{owner}/{repo}/readme/{dir}",
+           owner = vault$org,
+           repo = vault$repo,
+           dir = dir)
+  } else{
+    stop("User does not have access to this vault")
+  }
 }
 
-gh_getFolder <- function(vault) {
-  checkmate::assertCharacter(vault$org)
-  checkmate::assertCharacter(vault$repo)
-  checkmate::assertCharacter(vault$dir)
-  gh::gh("GET /repos/{owner}/{repo}/contents/{path}",
-         owner = vault$org,
-         repo = vault$repo,
-         path = vault$dir)
+gh_getFiles <- function(vault, item) {
+  check <- checkAccess(vault)
+  if (check) {
+    gh::gh("GET /repos/{owner}/{repo}/contents/{path}",
+           owner = vault$org,
+           repo = vault$repo,
+           path = item) %>%
+      purrr::discard(~.x$name %in% filesToIgnore())
+  } else{
+    stop("User does not have access to this vault")
+  }
 }
 
+# Checkers ---------------------------
 
-gh_getFile <- function(vault) {
-  checkmate::assertCharacter(vault$org)
-  checkmate::assertCharacter(vault$repo)
-  checkmate::assertCharacter(vault$dir)
-  checkmate::assertCharacter(vault$file)
-  path <- fs::path(vault$dir, vault$file)
-
-  gh::gh("GET /repos/{owner}/{repo}/contents/{path}",
-         owner = vault$org,
-         repo = vault$repo,
-         path = path)
+howManyFiles <- function(vault, item) {
+  rr <- gh_getFiles(vault, item)
+  length(rr)
 }
 
-vaultRepos <- function(vault) {
-  org <- vault$org
-  switch(org,
-         OdyOSG = c("picardScripts", "conceptSetLibrary", "caprTemplates"))
-}
-
-
-gh_getOrgRepos <- function(vault) {
-
-  tst <- gh::gh("GET /orgs/{org}/repos",
-                org = vault$org,
-                per_page = 50) %>%
-    purrr::keep(~.x$name %in% vaultRepos(vault))
+# Download ---------------
+downloadVault <- function(downloadUrl) {
+  tmp <- tempfile()
+  download.file(url = downloadUrl,
+                destfile = tmp,
+                quiet = TRUE)
+  txt <- readr::read_lines(tmp)
+  return(txt)
 }
