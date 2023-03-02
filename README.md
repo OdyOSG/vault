@@ -1,6 +1,6 @@
 # vault
 
-Accessor package for downloading OHDSI goodies
+Accessor package for downloading OHDSI goodies :candy:
 
 ## How to use
 
