@@ -2,7 +2,9 @@
 
 filesToIgnore <- function() {
   #TODO update to match all ignorable files
-  c(".gitattributes", ".gitignore", "README.md", "LICENSE")
+  c(".gitattributes", ".gitignore", "README.md", "LICENSE",
+    #TODO change .Rproj to regex
+    "picardScripts.Rproj")
 }
 
 
@@ -45,6 +47,8 @@ gh_getDirReadMe <- function(vault, dir) {
     stop("User does not have access to this vault")
   }
 }
+
+
 
 gh_getFiles <- function(vault, item) {
   check <- checkAccess(vault)
