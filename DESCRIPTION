@@ -1,6 +1,6 @@
 Package: vault
 Title: Accessor package for downloading OHDSI goodies
-Version: 1.0.1
+Version: 1.0.2
 Authors@R: 
     person("Martin", "Lavallee", , "martin.lavallee@odysseusinc.com", role = c("aut", "cre"))
 Description: This package sets a connection to a repository and access OHDSI components to use in a study.

@@ -1,3 +1,9 @@
+vault 1.0.2
+==========
+
+- add function to preview news file of directory
+- minor bug fixes and documentation
+
 vault 1.0.1
 ==========
 
