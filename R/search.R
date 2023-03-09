@@ -32,31 +32,65 @@ listMeta <- function(vault, dir) {
 
 # Contents ------------------
 
-#' List contents of vault
+#' List details of vault
 #' @param vault a vault object
+#' @return a detailed tibble with information about the vault. This takes longer to load
 #' @export
-listContents <- function(vault) {
+listDetails <- function(vault) {
   repos <- listRepos(vault)
   purrr::map_dfr(repos, ~listMeta(vault, dir = .x))
 }
 
-# Preview --------------------
-#' Preview file in Rstudio viewer
+#' List details of vault
 #' @param vault a vault object
-#' @param item the item in the vault to preview
+#' @return a character string with the names of the directories in the vault
 #' @export
-preview <- function(vault, item) {
-  dd <- gh_getDirReadMe(vault, item)$download_url
-  txt <- downloadVault(dd)
+listContents <- function(vault) {
+  gh_getContents(vault) %>%
+    purrr::map_chr(~.x$name)
+}
+
+
+getMdFoViewer <- function(type = c("news", "preview"), vault, item) {
+
+  type <- checkmate::assertChoice(x = type, choices = c("news", "preview")) %>%
+    switch (
+      news = "NEWS.md",
+      preview = "README.md"
+    )
+  path <- paste(item, type, sep = "/")
+  txt <- gh_downloadFile(vault = vault, path = path)
   #replace first header with % to fit pandoc
   txt[1] <- gsub("#", "%", txt[1])
-  #create a temp dir for readme file
+  #create a temp dir for md file
   tempDir <- tempfile()
   dir.create(tempDir)
-  tmpRmd <- file.path(tempDir, "README.Rmd")
+  tmpRmd <- file.path(tempDir, type)
   #write file to tmp
   readr::write_lines(txt, file = tmpRmd)
   tmpHtml <- rmarkdown::render(tmpRmd, params = "ask", quiet = TRUE)
   rstudioapi::viewer(tmpHtml)
   invisible(tmpHtml)
+
+}
+
+
+# Preview --------------------
+#' Preview file in Rstudio viewer
+#' @param vault a vault object
+#' @param item the item in the vault to preview
+#' @return opens r studio viewer to preview vault item readme
+#' @export
+preview <- function(vault, item) {
+  getMdFoViewer(type = "preview", vault = vault, item = item)
+}
+
+# News -----------------------
+#' Get software news for the vault item in Rstudio viewer
+#' @param vault a vault object
+#' @param item the item in the vault to preview
+#' @return opens r studio viewer to preview vault item news
+#' @export
+news <- function(vault, item) {
+  getMdFoViewer(type = "news", vault = vault, item = item)
 }
